@@ -26,6 +26,10 @@ services:
       - /dev/kmsg
     restart: unless-stopped
   node-exporter:
+<<<<<<< HEAD
+=======
+    node-exporter:
+>>>>>>> 715c10384e9c84e6ad7689dd8a1b6ccdc35c2b50
     image: prom/node-exporter:latest
     container_name: node-exporter
     restart: unless-stopped
