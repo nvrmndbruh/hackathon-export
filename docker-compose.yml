@@ -47,8 +47,9 @@ services:
       - "9187:9187"
     environment:
       DATA_SOURCE_NAME: "postgresql://appuser:apppass@postgres:5432/appdb?sslmode=disable"
-  networks:
-    -formonitoring_default
+    networks:
+      - formonitoring_default
+
 networks:
   formonitoring_default:
     external: true
