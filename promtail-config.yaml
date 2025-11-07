@@ -73,11 +73,7 @@ scrape_configs:
       - docker: {}
       
       - regex:
-          expression: 'msg=(?P<message>.+?)(?:\s+\w+=|$)'
-          source: log
-      
-      - regex:
-          expression: 'level=(?P<level>\w+)'
+          expression: '(?:time|ts)=(?P<timestamp>[^\s]+).*level=(?P<level>\w+).*msg=(?P<message>[^\s].+?)(?:\s+\w+=|$)'
           source: log
       
       - template:
@@ -88,23 +84,19 @@ scrape_configs:
           level: level_normalized
           container_name: container_name
       
-      - regex:
-          expression: '(?:time|ts)=(?P<docker_time>[^\s]+)'
-          source: log
-      
       - template:
-          source: time_short
-          template: '{{ date "2006-01-02 15:04:05" .docker_time }}'
+          source: time_formatted
+          template: '{{ if .timestamp }}{{ date "2006-01-02 15:04:05" .timestamp }}{{ else }}{{ date "2006-01-02 15:04:05" now }}{{ end }}'
       
       - template:
           source: output
-          template: '[{{ .time_short }}] [{{ .level_normalized }}] [DOCKER:{{ .container_name }}] {{ .message }}'
+          template: '[{{ .time_formatted }}] [{{ .level_normalized }}] [DOCKER:{{ .container_name }}] {{ .message }}'
       
       - output:
           source: output
       
       - timestamp:
-          source: docker_time
+          source: timestamp
           format: RFC3339Nano
 
 
