@@ -58,10 +58,12 @@ services:
     ports:
       - "9419:9419"
     environment:
-      RABBIT_URL: http://192.168.0.104:15672
+      RABBIT_URL: http://rabbitmq:15672  # ← используем имя сервиса
       RABBIT_USER: guest
       RABBIT_PASSWORD: guest
       PUBLISH_PORT: 9419
+    depends_on:
+      - rabbitmq
 
 networks:
   formonitoring_default:
