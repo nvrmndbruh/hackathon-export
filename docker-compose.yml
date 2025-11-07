@@ -4,6 +4,7 @@ services:
     container_name: promtail
     restart: unless-stopped
     volumes:
+      - ./promtail-config.yaml:/etc/promtail/config.yml
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /home/user/ForMonitoring/logs:/app/logs:ro
