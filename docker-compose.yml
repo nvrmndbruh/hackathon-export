@@ -51,6 +51,39 @@ services:
     networks:
       - formonitoring_default
 
+    rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - formonitoring_default
+  rabbitmq-exporter:
+    image: kbudde/rabbitmq-exporter:latest
+    container_name: rabbitmq-exporter
+    restart: unless-stopped
+    ports:
+      - "9419:9419"
+    environment:
+      RABBIT_URL: http://rabbitmq:15672
+      RABBIT_USER: admin
+      RABBIT_PASSWORD: password
+      PUBLISH_PORT: 9419
+    networks:
+      - formonitoring_default
+    depends_on:
+      - rabbitmq
+
+volumes:
+  rabbitmq_data:
+
 networks:
   formonitoring_default:
     external: true
