@@ -56,28 +56,11 @@ scrape_configs:
 # =======================================================================
 # ИСТОЧНИК 2: ЛОГИ DOCKER
 # =======================================================================
-  - job_name: docker-logs
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
-    
-    relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container_name'
-      
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'stream'
-      
-      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
-        target_label: 'service'
-      
-      - target_label: 'job'
-        replacement: 'docker-logs'
-    
-    pipeline_stages:
+  pipeline_stages:
+      # ШАГ 1: Парсинг Docker формата
       - docker: {}
       
+      # ШАГ 2: ПРОСТОЕ ИЗВЛЕЧЕНИЕ ВСЕХ ПОЛЕЙ
       - regex:
           expression: '(?:time|ts)=(?P<timestamp>[^\s]+)'
           source: log
@@ -85,39 +68,42 @@ scrape_configs:
       - regex:
           expression: '(?:level|lvl)=(?P<level>\w+)'
           source: log
-
+      
+      # ШАГ 3: МАКСИМАЛЬНО ПРОСТОЕ ИЗВЛЕЧЕНИЕ СООБЩЕНИЯ
       - regex:
-          expression: 'msg=(?P<msg_raw>.+?)(?:\s+\w+=|$)'
+          expression: 'msg=(?P<message>.+?)$'
           source: log
       
-      - template:
-          source: message
-          template: '{{ regexReplaceAll "\"" .msg_raw "" }}'
-      
+      # ШАГ 4: ЕСЛИ СООБЩЕНИЯ НЕТ, ИСПОЛЬЗУЙ ВЕСЬ ЛОГ
       - template:
           source: final_message
           template: '{{ if .message }}{{ .message }}{{ else }}{{ .log }}{{ end }}'
-
+      
+      # ШАГ 5: НОРМАЛИЗАЦИЯ УРОВНЯ
       - template:
           source: level_normalized
           template: '{{ if .level }}{{ .level | ToUpper }}{{ else }}INFO{{ end }}'
       
+      # ШАГ 6: ДОБАВЛЕНИЕ LABELS
       - labels:
           level: level_normalized
           container_name: container_name
-          stream: stream
       
+      # ШАГ 7: ФОРМАТИРОВАНИЕ ВРЕМЕНИ
       - template:
           source: time_formatted
           template: '{{ if .timestamp }}{{ date "2006-01-02 15:04:05" .timestamp }}{{ else }}{{ date "2006-01-02 15:04:05" now }}{{ end }}'
       
+      # ШАГ 8: ФИНАЛЬНЫЙ ФОРМАТ
       - template:
           source: output
           template: '[{{ .time_formatted }}] [{{ .level_normalized }}] [DOCKER:{{ .container_name }}] {{ .final_message }}'
-
+      
+      # ШАГ 9: УСТАНОВКА ВЫВОДА
       - output:
           source: output
       
+      # ШАГ 10: УСТАНОВКА ВРЕМЕНИ
       - timestamp:
           source: timestamp
           format: RFC3339Nano
