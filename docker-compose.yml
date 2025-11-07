@@ -50,5 +50,4 @@ services:
       - "9187:9187"
     environment:
       DATA_SOURCE_NAME: "postgresql://user:qwerty1234@postgres:5432/postgres?sslmode=disable"
-    networks:
-      - formonitoring_default
+
