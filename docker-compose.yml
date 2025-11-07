@@ -80,9 +80,8 @@ services:
       - formonitoring_default
     depends_on:
       - rabbitmq
-
-volumes:
-  rabbitmq_data:
+    volumes:
+      rabbitmq_data:
 
 networks:
   formonitoring_default:
