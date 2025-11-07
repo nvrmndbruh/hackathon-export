@@ -51,7 +51,20 @@ services:
       DATA_SOURCE_NAME: "postgresql://appuser:apppass@postgres:5432/appdb?sslmode=disable"
     networks:
       - formonitoring_default
-      
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"   
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - formonitoring_default    
   rabbitmq-exporter:
     image: kbudde/rabbitmq-exporter:latest
     container_name: rabbitmq-exporter
