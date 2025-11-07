@@ -4,16 +4,13 @@ services:
     container_name: promtail
     restart: unless-stopped
     volumes:
-      - ./promtail-config.yaml:/etc/promtail/config.yml
-      - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock
       - /home/user/ForMonitoring/logs:/app/logs:ro
     command: -config.file=/etc/promtail/config.yml
     privileged: true
     ports:
       - 9080:9080
-    network_mode: host
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
