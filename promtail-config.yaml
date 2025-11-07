@@ -55,56 +55,27 @@ scrape_configs:
       - timestamp:
           source: timestamp
           format: '2006-01-02 15:04:05.000 -07:00'
-
-
-# =======================================================================
-# ИСТОЧНИК 2: ЛОГИ DOCKER
-# =======================================================================
   - job_name: docker-logs
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
-    
-    relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container_name'
-      
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'stream'
-      
-      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
-        target_label: 'service'
-    
+    static_configs:
+    - targets:
+        - localhost
+      labels:
+        job: docker-logs
+        __path__: /var/lib/docker/containers/*/*log
+
     pipeline_stages:
-      - docker: {}
-      
-      - regex:
-          expression: '(?i).*\[?(?P<level>TRACE|DEBUG|INFO|INFORMATION|WARN|WARNING|ERROR|FATAL|CRITICAL|ERR)\]?.*'
-      
-      - template:
-          source: level
-          template: '{{ if .level }}{{ .level }}{{ else }}INFO{{ end }}'
-      
-      - template:
-          source: level_normalized
-          template: '{{ if or (eq .level "INFORMATION") (eq .level "INFO") }}INFO{{ else if or (eq .level "WARNING") (eq .level "WARN") }}WARN{{ else if or (eq .level "ERR") (eq .level "ERROR") }}ERROR{{ else if or (eq .level "FATAL") (eq .level "CRITICAL") }}CRITICAL{{ else }}{{ .level | ToUpper }}{{ end }}'
-      
-      - labels:
-          level: level_normalized
-          container_name: container_name
-      
-      - template:
-          source: time_short
-          template: '{{ date "2006-01-02 15:04:05" .timestamp }}'
-      
-      - template:
-          source: output
-          template: '[{{ .time_short }}] [{{ .level_normalized }}] [DOCKER:{{ .container_name }}] {{ .message }}'
-      
-      - output:
-          source: output
-      
-      - timestamp:
-          source: timestamp
-          format: RFC3339Nano
+
+    - json:
+        expressions:
+          stream: stream
+          attrs: attrs
+          tag: attrs.tag
+
+    - regex:
+        expression: (?P<image_name>(?:[^|]*[^|])).(?P<container_name>(?:[^|]*[^|])).(?P<image_id>(?:[^|]*[^|])).(?P<container_id>(?:[^|]*[^|]))
+        source: "tag"
+
+    - labels:
+        tag:
+        image_name:
+        container_name:
