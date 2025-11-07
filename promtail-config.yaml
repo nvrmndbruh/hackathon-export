@@ -68,31 +68,33 @@ scrape_configs:
       
       - source_labels: ['__meta_docker_container_log_stream']
         target_label: 'stream'
-      
-      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
-        target_label: 'service'
     
     pipeline_stages:
       - docker: {}
       
       - regex:
-          expression: '(?i).*\[?(?P<level>TRACE|DEBUG|INFO|INFORMATION|WARN|WARNING|ERROR|FATAL|CRITICAL|ERR)\]?.*'
+          expression: 'msg=(?P<message>.+?)(?:\s+\w+=|$)'
+          source: log
       
-      - template:
-          source: level
-          template: '{{ if .level }}{{ .level }}{{ else }}INFO{{ end }}'
+      - regex:
+          expression: 'level=(?P<level>\w+)'
+          source: log
       
       - template:
           source: level_normalized
-          template: '{{ if or (eq .level "INFORMATION") (eq .level "INFO") }}INFO{{ else if or (eq .level "WARNING") (eq .level "WARN") }}WARN{{ else if or (eq .level "ERR") (eq .level "ERROR") }}ERROR{{ else if or (eq .level "FATAL") (eq .level "CRITICAL") }}CRITICAL{{ else }}{{ .level | ToUpper }}{{ end }}'
+          template: '{{ if .level }}{{ .level | ToUpper }}{{ else }}INFO{{ end }}'
       
       - labels:
           level: level_normalized
           container_name: container_name
       
+      - regex:
+          expression: '(?:time|ts)=(?P<docker_time>[^\s]+)'
+          source: log
+      
       - template:
           source: time_short
-          template: '{{ date "2006-01-02 15:04:05" .timestamp }}'
+          template: '{{ date "2006-01-02 15:04:05" .docker_time }}'
       
       - template:
           source: output
@@ -102,7 +104,7 @@ scrape_configs:
           source: output
       
       - timestamp:
-          source: timestamp
+          source: docker_time
           format: RFC3339Nano
 
 
