@@ -71,7 +71,7 @@ scrape_configs:
       
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: 'service'
-
+      
       - target_label: 'job'
         replacement: 'docker-logs'
     
@@ -79,34 +79,45 @@ scrape_configs:
       - docker: {}
       
       - regex:
-          expression: '(?:time|ts)=(?P<timestamp>[^\s]+).*?(?:level|lvl)=(?P<level>\w+).*?msg=(?P<message>"[^"]*"|[^\s]+)'
+          expression: '(?:time|ts)=(?P<timestamp>[^\s]+)'
           source: log
+      
+      - regex:
+          expression: '(?:level|lvl)=(?P<level>\w+)'
+          source: log
+
+      - regex:
+          expression: 'msg=(?P<msg_raw>.+?)(?:\s+\w+=|$)'
+          source: log
+      
+      - template:
+          source: message
+          template: '{{ regexReplaceAll "\"" .msg_raw "" }}'
       
       - template:
           source: final_message
           template: '{{ if .message }}{{ .message }}{{ else }}{{ .log }}{{ end }}'
-      
+
       - template:
           source: level_normalized
           template: '{{ if .level }}{{ .level | ToUpper }}{{ else }}INFO{{ end }}'
-
+      
       - labels:
           level: level_normalized
           container_name: container_name
           stream: stream
-          job: docker-logs
-
+      
       - template:
           source: time_formatted
           template: '{{ if .timestamp }}{{ date "2006-01-02 15:04:05" .timestamp }}{{ else }}{{ date "2006-01-02 15:04:05" now }}{{ end }}'
-
+      
       - template:
           source: output
           template: '[{{ .time_formatted }}] [{{ .level_normalized }}] [DOCKER:{{ .container_name }}] {{ .final_message }}'
-      
+
       - output:
           source: output
-
+      
       - timestamp:
           source: timestamp
           format: RFC3339Nano
