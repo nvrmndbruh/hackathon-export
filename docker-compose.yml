@@ -58,14 +58,14 @@ services:
     ports:
       - "9419:9419"
     environment:
-      RABBIT_URL: http://rabbitmq:15672
-      RABBIT_USER: admin
-      RABBIT_PASSWORD: password
+      RABBIT_URL: http://rabbit:15672
+      RABBIT_USER: guest
+      RABBIT_PASSWORD: guest
       PUBLISH_PORT: 9419
     networks:
-      - formonitoring_default
+      - monitoring_network
     depends_on:
-      - rabbitmq
+      - rabbit
 
 networks:
   formonitoring_default:
