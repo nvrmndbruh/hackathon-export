@@ -62,8 +62,6 @@ services:
       RABBIT_USER: guest
       RABBIT_PASSWORD: guest
       PUBLISH_PORT: 9419
-    networks:
-      - monitoring_network
     depends_on:
       - rabbit
 
