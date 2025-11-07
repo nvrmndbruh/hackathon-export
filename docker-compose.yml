@@ -6,11 +6,12 @@ services:
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail-config.yaml:/etc/promtail/config.yml
       - /home/user/ForMonitoring/logs:/app/logs:ro
     command: -config.file=/etc/promtail/config.yml
     privileged: true
     ports:
-      - 9080:9080
+      - "9080:9080"
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: cadvisor
