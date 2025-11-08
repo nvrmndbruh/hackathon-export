@@ -66,68 +66,20 @@ scrape_configs:
         regex: '/(.*)'
         target_label: 'container_name'
       
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'stream'
-      
-      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
-        target_label: 'service'
-      
       - target_label: 'job'
         replacement: 'docker-logs'
     
     pipeline_stages:
-      # ШАГ 1: Парсинг Docker формата - извлекает поле "log"
+      # ШАГ 1: Парсинг Docker формата
       - docker: {}
       
-      # ШАГ 2: Попытка парсинга как JSON (многие контейнеры логируют в JSON)
-      - json:
-          expressions:
-            timestamp: time
-            level: level
-            message: message
-            msg: msg
-          source: log
-      
-      # ШАГ 3: Если JSON не сработал, попытка logfmt формата (key=value)
-      - logfmt:
-          mapping:
-            ts: timestamp
-            time: timestamp
-            level: level
-            lvl: level
-            msg: message
-            message: message
-          source: log
-      
-      # ШАГ 4: Создаём финальное сообщение - используем msg или message, или весь log
-      - template:
-          source: final_message
-          template: '{{ if .msg }}{{ .msg }}{{ else if .message }}{{ .message }}{{ else }}{{ .log }}{{ end }}'
-      
-      # ШАГ 5: Нормализация уровня
-      - template:
-          source: level_normalized
-          template: '{{ if .level }}{{ .level | ToUpper }}{{ else }}INFO{{ end }}'
-      
-      # ШАГ 6: Добавление labels
-      - labels:
-          level: level_normalized
-          container_name: container_name
-      
-      # ШАГ 7: Форматирование времени
-      - template:
-          source: time_formatted
-          template: '{{ if .ts }}{{ regexReplaceAll "T" .ts " " | regexReplaceAll "Z.*" "" }}{{ else if .time }}{{ regexReplaceAll "T" .time " " | regexReplaceAll "Z.*" "" }}{{ else if .timestamp }}{{ regexReplaceAll "T" .timestamp " " | regexReplaceAll "Z.*" "" }}{{ else }}{{ date "2006-01-02 15:04:05" now }}{{ end }}'
-      
-      # ШАГ 8: Финальный формат
+      # ШАГ 2: ВЫВОДИМ ВЕСЬ LOG БЕЗ ИЗМЕНЕНИЙ ДЛЯ ОТЛАДКИ
       - template:
           source: output
-          template: '[{{ .time_formatted }}] [{{ .level_normalized }}] [DOCKER:{{ .container_name }}] {{ .final_message }}'
+          template: 'RAW_LOG: {{ .log }}'
       
-      # ШАГ 9: Установка вывода
       - output:
           source: output
-
 
 # =======================================================================
 # ИСТОЧНИК 3: СИСТЕМНЫЕ ЛОГИ
