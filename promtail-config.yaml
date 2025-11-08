@@ -65,43 +65,42 @@ scrape_configs:
         replacement: 'docker-logs'
     
     pipeline_stages:
-
-  - json:
-      expressions:
-        json_time: time
-        json_ts: ts
-        json_timestamp: timestamp
-        json_level: level
-        json_lvl: lvl
-        json_message: message
-        json_msg: msg
-  
-  - template:
-      source: extracted_message
-      template: '{{ if .json_msg }}{{ .json_msg }}{{ else if .json_message }}{{ .json_message }}{{ else }}{{ .Entry }}{{ end }}'
-  
-  - template:
-      source: extracted_level
-      template: '{{ if .json_level }}{{ .json_level }}{{ else if .json_lvl }}{{ .json_lvl }}{{ else }}INFO{{ end }}'
-  
-  - template:
-      source: level_normalized
-      template: '{{ .extracted_level | ToUpper }}'
-  
-  - labels:
-      level: level_normalized
-      container_name: container_name
-  
-  - template:
-      source: time_formatted
-      template: '{{ date "2006-01-02 15:04:05" now }}'
-  
-  - template:
-      source: output
-      template: '[{{ .time_formatted }}] [{{ .level_normalized }}] [DOCKER:{{ .container_name }}] {{ .extracted_message }}'
-  
-  - output:
-      source: output
+    - json:
+        expressions:
+          json_time: time
+          json_ts: ts
+          json_timestamp: timestamp
+          json_level: level
+          json_lvl: lvl
+          json_message: message
+          json_msg: msg
+    
+    - template:
+        source: extracted_message
+        template: '{{ if .json_msg }}{{ .json_msg }}{{ else if .json_message }}{{ .json_message }}{{ else }}{{ .Entry }}{{ end }}'
+    
+    - template:
+        source: extracted_level
+        template: '{{ if .json_level }}{{ .json_level }}{{ else if .json_lvl }}{{ .json_lvl }}{{ else }}INFO{{ end }}'
+    
+    - template:
+        source: level_normalized
+        template: '{{ .extracted_level | ToUpper }}'
+    
+    - labels:
+        level: level_normalized
+        container_name: container_name
+    
+    - template:
+        source: time_formatted
+        template: '{{ date "2006-01-02 15:04:05" now }}'
+    
+    - template:
+        source: output
+        template: '[{{ .time_formatted }}] [{{ .level_normalized }}] [DOCKER:{{ .container_name }}] {{ .extracted_message }}'
+    
+    - output:
+        source: output
 
 
   # ЛОГИ СИСТЕМЫ
