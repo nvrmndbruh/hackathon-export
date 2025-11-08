@@ -66,18 +66,67 @@ scrape_configs:
         regex: '/(.*)'
         target_label: 'container_name'
       
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+      
       - target_label: 'job'
         replacement: 'docker-logs'
     
     pipeline_stages:
-      # ШАГ 1: Парсинг Docker формата
-      - docker: {}
+      # БЕЗ docker: {} - API уже распаковал JSON!
       
-      # ШАГ 2: ВЫВОДИМ ВЕСЬ LOG БЕЗ ИЗМЕНЕНИЙ ДЛЯ ОТЛАДКИ
+      # ШАГ 1: Попытка JSON парсинга содержимого лога
+      - json:
+          expressions:
+            json_time: time
+            json_ts: ts
+            json_timestamp: timestamp
+            json_level: level
+            json_lvl: lvl
+            json_message: message
+            json_msg: msg
+      
+      # ШАГ 2: Попытка logfmt парсинга
+      - logfmt:
+          mapping:
+            logfmt_time: time
+            logfmt_ts: ts
+            logfmt_level: level
+            logfmt_lvl: lvl
+            logfmt_message: message
+            logfmt_msg: msg
+      
+      # ШАГ 3: Извлечение сообщения - используем Entry (исходное содержимое строки)
+      - template:
+          source: extracted_message
+          template: '{{ if .json_msg }}{{ .json_msg }}{{ else if .json_message }}{{ .json_message }}{{ else if .logfmt_msg }}{{ .logfmt_msg }}{{ else if .logfmt_message }}{{ .logfmt_message }}{{ else }}{{ .Entry }}{{ end }}'
+      
+      # ШАГ 4: Извлечение уровня
+      - template:
+          source: extracted_level
+          template: '{{ if .json_level }}{{ .json_level }}{{ else if .json_lvl }}{{ .json_lvl }}{{ else if .logfmt_level }}{{ .logfmt_level }}{{ else if .logfmt_lvl }}{{ .logfmt_lvl }}{{ else }}INFO{{ end }}'
+      
+      # ШАГ 5: Нормализация уровня
+      - template:
+          source: level_normalized
+          template: '{{ .extracted_level | ToUpper }}'
+      
+      # ШАГ 6: Добавление labels
+      - labels:
+          level: level_normalized
+          container_name: container_name
+      
+      # ШАГ 7: Форматирование времени
+      - template:
+          source: time_formatted
+          template: '{{ date "2006-01-02 15:04:05" now }}'
+      
+      # ШАГ 8: Финальный формат
       - template:
           source: output
-          template: 'RAW_LOG: {{ .log }}'
+          template: '[{{ .time_formatted }}] [{{ .level_normalized }}] [DOCKER:{{ .container_name }}] {{ .extracted_message }}'
       
+      # ШАГ 9: Установка вывода
       - output:
           source: output
 
